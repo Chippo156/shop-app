@@ -1,5 +1,6 @@
 package com.project.shopapp.controller;
 
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.OrderDTO;
 import com.project.shopapp.dtos.OrderDetailDTO;
 import com.project.shopapp.exception.DataNotFoundException;
@@ -7,6 +8,7 @@ import com.project.shopapp.models.Order;
 import com.project.shopapp.models.OrderDetail;
 import com.project.shopapp.responses.OrderDetailResponse;
 import com.project.shopapp.services.OrderDetailService;
+import com.project.shopapp.untils.MessagesKeys;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.List;
 public class OrderDetailController {
     @Autowired
     private OrderDetailService orderDetailService;
+    @Autowired
+    private LocalizationUtils localizationUtils;
     @GetMapping("order/{order_id}")
     public ResponseEntity<?> getOrderDetails(@Valid @PathVariable("order_id") Long orderId
     ) {
@@ -76,7 +80,7 @@ public class OrderDetailController {
        try
        {
            orderDetailService.deleteOrderDetail(id);
-           return ResponseEntity.ok().body("Delete successfully with id : "+ id);
+           return ResponseEntity.ok().body(localizationUtils.getLocalizedMessage(MessagesKeys.ORDER_DETAILS_DELETE_SUCCESSFULLY,id));
        }
        catch (Exception e)
        {

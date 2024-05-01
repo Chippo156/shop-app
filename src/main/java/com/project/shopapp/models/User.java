@@ -25,16 +25,16 @@ public class User extends BaseEntity implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "fullname",length = 100)
+    @Column(name = "fullname", length = 100)
     private String fullName;
 
-    @Column(name = "phone_number",length = 10,nullable = false)
+    @Column(name = "phone_number", length = 10, nullable = false)
     private String phoneNumber;
 
-    @Column(name = "address",length = 200)
+    @Column(name = "address", length = 200)
     private String address;
 
-    @Column(name = "password",length = 200)
+    @Column(name = "password", length = 200)
     private String password;
 
     @Column(name = "is_active")
@@ -58,7 +58,7 @@ public class User extends BaseEntity implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_"+getRole().getName()));
+        authorities.add(new SimpleGrantedAuthority("ROLE_"+getRole().getName().toUpperCase()));
         return authorities;
     }
 

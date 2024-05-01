@@ -1,6 +1,7 @@
 package com.project.shopapp.controller;
 
 import com.github.javafaker.Faker;
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.ProductDTO;
 import com.project.shopapp.dtos.ProductImageDTO;
 import com.project.shopapp.exception.DataNotFoundException;
@@ -10,8 +11,10 @@ import com.project.shopapp.models.ProductImage;
 import com.project.shopapp.responses.ProductListResponse;
 import com.project.shopapp.responses.ProductResponse;
 import com.project.shopapp.services.ProductService;
+import com.project.shopapp.untils.MessagesKeys;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,6 +43,8 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
+    @Autowired
+    private LocalizationUtils localizationUtils;
     @PostMapping(value = "")
     public ResponseEntity<?> createProduct(@Valid @RequestBody ProductDTO productDTO,
                                            BindingResult result) {
@@ -51,8 +56,7 @@ public class ProductController {
             Product newProduct = productService.createProduct(productDTO);
             return ResponseEntity.ok(productDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_CREATE_FAILED, e.getMessage()));}
     }
 
     @PostMapping(value = "uploads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -68,12 +72,12 @@ public class ProductController {
                     }
                     if (file.getSize() > 10 * 1024 * 1024) // Kích thước lớn hơn 10MB
                     {
-                        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body("File size is too large");
+                        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPLOADS_FILE_LARGE));
                     }
                     String contentType = (file.getContentType());
                     System.out.println(contentType.toString());
                     if (contentType == null || !contentType.startsWith("image/")) {
-                        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body("File must be an image");
+                        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPLOADS_MUST_BE_IMAGE));
                     }
 
                     //lUƯU FILE và cập nhat thumbnail
@@ -88,6 +92,24 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+
+    }
+    @GetMapping("/images/{imageName}")
+    public ResponseEntity<?> viewImage(@PathVariable String imageName) {
+       try {
+           Path path = Paths.get("uploads/", imageName);
+           UrlResource resource = new UrlResource(path.toUri());
+           if (resource.exists())
+           {
+               return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
+           }else {
+                return ResponseEntity.notFound().build();
+           }
+
+       }       catch (Exception e)
+       {
+           return ResponseEntity.notFound().build();
+       }
 
     }
 
@@ -138,9 +160,9 @@ public class ProductController {
     public ResponseEntity<?> deleteProduct(@PathVariable(value = "id") Long id) {
         try {
             productService.deleteProduct(id);
-            return ResponseEntity.ok("Delete product successfully with id : " + id);
+            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_DELETE_SUCCESSFULLY,id));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_DELETE_FAILED, e.getMessage()));
         }
     }
 
@@ -149,10 +171,10 @@ public class ProductController {
     {
         try {
             productService.updateProduct(id,productDTO);
-            return ResponseEntity.ok("Update product successfully");
+            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_SUCCESSFULLY,id));
         }catch (Exception e)
         {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_FAILED,e.getMessage()));
         }
     }
 //    @PostMapping("/generateFakeProduct")

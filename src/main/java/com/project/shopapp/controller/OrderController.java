@@ -1,10 +1,12 @@
 package com.project.shopapp.controller;
 
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.CategoryDTO;
 import com.project.shopapp.dtos.OrderDTO;
 import com.project.shopapp.models.Order;
 import com.project.shopapp.responses.OrderResponse;
 import com.project.shopapp.services.impl.OrderService;
+import com.project.shopapp.untils.MessagesKeys;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,8 @@ import java.util.List;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private LocalizationUtils localizationUtils;
     @GetMapping("user/{user_id}")
     public ResponseEntity<?> getOrders(
        @Valid @PathVariable("user_id") Long userId
@@ -76,6 +80,6 @@ public class OrderController {
     public ResponseEntity<?> deleteOrders(@PathVariable Long id) {
         //xóa mềm => cập nhat truong active = false
         orderService.deleteOrder(id);
-        return ResponseEntity.ok("This is delete order by id" + id);
+        return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.ORDER_DELETE_SUCCESSFULLY,id));
     }
 }

@@ -1,6 +1,7 @@
 package com.project.shopapp.services.impl;
 
 import com.project.shopapp.components.JwtTokenUtils;
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.UserDTO;
 import com.project.shopapp.exception.DataNotFoundException;
 import com.project.shopapp.models.Role;
@@ -8,7 +9,9 @@ import com.project.shopapp.models.User;
 import com.project.shopapp.repository.RoleRepository;
 import com.project.shopapp.repository.UserRepository;
 import com.project.shopapp.services.UserService;
+import com.project.shopapp.untils.MessagesKeys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,12 +29,13 @@ public class iUserService implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
+    private final LocalizationUtils localizationUtils;
     @Override
     public User createUser(UserDTO userDTO) throws DataNotFoundException {
         String phoneNumber = userDTO.getPhoneNumber();
         //Kiểm tra sdt đã tồn tại chưa
         if(userRepository.existsByPhoneNumber(phoneNumber)){
-            throw new DataIntegrityViolationException("Phone number already exists");
+            throw new DataIntegrityViolationException(localizationUtils.getLocalizedMessage(MessagesKeys.EXIST_PHONE));
         }
         User user = new User()
                 .builder()
@@ -44,7 +48,7 @@ public class iUserService implements UserService {
                 .googleAccountId(userDTO.getGoogleAccountId())
                 .build();
         Role role = roleRepository.findById(userDTO.getRoleId())
-                .orElseThrow(() -> new DataNotFoundException("Role not found"));
+                .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessagesKeys.ROLE_NOT_FOUND)));
         user.setRole(role);
         if(userDTO.getFacebookAccountId() == 0 && userDTO.getGoogleAccountId() == 0){
             String password = userDTO.getPassword();
@@ -60,7 +64,7 @@ public class iUserService implements UserService {
         Optional<User> user = userRepository.findByPhoneNumber(phoneNumber);
         if(user.isEmpty())
         {
-            throw new DataNotFoundException("Invalid phone number / password");
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessagesKeys.INVALID_PHONE_NUMBER));
         }
         //return optinal user.get();
         User existingUser = user.get();
@@ -69,7 +73,7 @@ public class iUserService implements UserService {
         {
             if(!passwordEncoder.matches(password,existingUser.getPassword()))
             {
-                throw new BadCredentialsException("Wrong phone number / password");
+                throw new BadCredentialsException(localizationUtils.getLocalizedMessage(MessagesKeys.WRONG_PASSWORD));
             }
         }
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

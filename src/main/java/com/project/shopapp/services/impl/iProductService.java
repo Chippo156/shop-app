@@ -1,5 +1,6 @@
 package com.project.shopapp.services.impl;
 
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.ProductDTO;
 import com.project.shopapp.dtos.ProductImageDTO;
 import com.project.shopapp.exception.DataNotFoundException;
@@ -12,6 +13,7 @@ import com.project.shopapp.repository.ProductImageRepository;
 import com.project.shopapp.repository.ProductRepository;
 import com.project.shopapp.responses.ProductResponse;
 import com.project.shopapp.services.ProductService;
+import com.project.shopapp.untils.MessagesKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,8 @@ public class iProductService implements ProductService {
     private ProductRepository productRepository;
     @Autowired
     private ProductImageRepository productImageRepository;
+    @Autowired
+    private LocalizationUtils localizationUtils;
 
     @Override
     public Product createProduct(ProductDTO productDTO) throws DataNotFoundException {
@@ -92,7 +96,7 @@ public class iProductService implements ProductService {
         //Không cho insert quas 5 anh cho 1 sp
         int size = productImageRepository.findAllByProductId(productId).size();
         if (size >= 5) {
-            throw new InvalidParamException("Cannot insert more than 5 images for a product");
+            throw new InvalidParamException(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPLOADS_MAX_5_IMAGES));
         }
         return productImageRepository.save(newProductImage);
     }
