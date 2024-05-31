@@ -14,11 +14,13 @@ import com.project.shopapp.repository.ProductRepository;
 import com.project.shopapp.responses.ProductResponse;
 import com.project.shopapp.services.ProductService;
 import com.project.shopapp.untils.MessagesKeys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -52,10 +54,9 @@ public class iProductService implements ProductService {
     }
 
     @Override
-    public Page<ProductResponse> getAllProducts(PageRequest pageRequest) {
+    public Page<ProductResponse> getAllProducts(String keyword, Long categoryId, PageRequest pageRequest) {
         //Lấy danh sách sản phẩm theo trang va limit
-        return productRepository.findAll(pageRequest).map(ProductResponse::fromProduct);
-
+        return productRepository.searchProducts(categoryId, keyword, pageRequest).map(ProductResponse::fromProduct);
     }
 
     @Override
@@ -99,5 +100,21 @@ public class iProductService implements ProductService {
             throw new InvalidParamException(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPLOADS_MAX_5_IMAGES));
         }
         return productImageRepository.save(newProductImage);
+    }
+
+    @Override
+    public Optional<Product> getDetailProduct(Long productId) {
+        return productRepository.getDetailProduct(productId);
+    }
+
+    @Override
+    public List<Product> findProductByIds(List<Long> productIds) {
+        try {
+
+            return productRepository.findProductByIds(productIds);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Product not found");
+        }
     }
 }

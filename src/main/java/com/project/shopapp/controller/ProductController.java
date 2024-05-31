@@ -13,6 +13,7 @@ import com.project.shopapp.responses.ProductResponse;
 import com.project.shopapp.services.ProductService;
 import com.project.shopapp.untils.MessagesKeys;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -34,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,9 +45,9 @@ import java.util.UUID;
 public class ProductController {
     @Autowired
     private ProductService productService;
-
     @Autowired
     private LocalizationUtils localizationUtils;
+
     @PostMapping(value = "")
     public ResponseEntity<?> createProduct(@Valid @RequestBody ProductDTO productDTO,
                                            BindingResult result) {
@@ -56,7 +59,8 @@ public class ProductController {
             Product newProduct = productService.createProduct(productDTO);
             return ResponseEntity.ok(productDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_CREATE_FAILED, e.getMessage()));}
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_CREATE_FAILED, e.getMessage()));
+        }
     }
 
     @PostMapping(value = "uploads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -94,22 +98,23 @@ public class ProductController {
         }
 
     }
+
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
-       try {
-           Path path = Paths.get("uploads/", imageName);
-           UrlResource resource = new UrlResource(path.toUri());
-           if (resource.exists())
-           {
-               return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
-           }else {
-                return ResponseEntity.notFound().build();
-           }
+        try {
+            Path path = Paths.get("uploads/", imageName);
 
-       }       catch (Exception e)
-       {
-           return ResponseEntity.notFound().build();
-       }
+            UrlResource resource = new UrlResource(path.toUri());
+
+            if (resource.exists()) {
+                return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
 
     }
 
@@ -132,11 +137,13 @@ public class ProductController {
 
     @GetMapping("") //http://localhost:8088/api/v1/products?page=1&limit=10
     public ResponseEntity<ProductListResponse> getAllProducts(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
             @RequestParam(value = "page") int page,
             @RequestParam(value = "limit") int limit
     ) {
-        PageRequest pageRequest = PageRequest.of(page, limit, Sort.by("createdAt").descending());
-        Page<ProductResponse> pageProducts = productService.getAllProducts(pageRequest);
+        PageRequest pageRequest = PageRequest.of(page, limit, Sort.by("id").ascending());
+        Page<ProductResponse> pageProducts = productService.getAllProducts(keyword, categoryId, pageRequest);
         int totalPages = pageProducts.getTotalPages();
         List<ProductResponse> products = pageProducts.getContent();
         return ResponseEntity.ok(ProductListResponse.builder()
@@ -157,52 +164,60 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable(value = "id") Long id) {
         try {
             productService.deleteProduct(id);
-            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_DELETE_SUCCESSFULLY,id));
+            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_DELETE_SUCCESSFULLY, id));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_DELETE_FAILED, e.getMessage()));
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id,@RequestBody ProductDTO productDTO)
-    {
+    @Transactional
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody ProductDTO productDTO) {
         try {
-            productService.updateProduct(id,productDTO);
-            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_SUCCESSFULLY,id));
-        }catch (Exception e)
-        {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_FAILED,e.getMessage()));
+            productService.updateProduct(id, productDTO);
+            return ResponseEntity.ok(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_SUCCESSFULLY, id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(localizationUtils.getLocalizedMessage(MessagesKeys.PRODUCT_UPDATE_FAILED, e.getMessage()));
         }
     }
-//    @PostMapping("/generateFakeProduct")
-    private ResponseEntity<String> generateFakeProducts() {
+
+    @PostMapping("/fakeProduct")
+    public ResponseEntity<String> generateFakeProducts() {
         Faker faker = new Faker();
-        for(int i=0 ; i <1_000;i++)
-        {
+        for (int i = 0; i < 100; i++) {
             String productName = faker.commerce().productName();
-            if(productService.existsByProductName(productName))
-            {
+            if (productService.existsByProductName(productName)) {
                 continue;
             }
             ProductDTO productDTO = ProductDTO.builder()
                     .name(productName)
-                    .price((float) faker.number().numberBetween(10,90_000_000))
+                    .price((float) faker.number().numberBetween(10, 90_000_000))
                     .description(faker.lorem().sentence())
                     .thumbnail("")
-                    .categoryId((long) faker.number().numberBetween(2,5))
+                    .categoryId((long) faker.number().numberBetween(1, 1))
                     .build();
             try {
                 productService.createProduct(productDTO);
 
-            }catch (Exception e)
-            {
+            } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-
             }
         }
         return ResponseEntity.ok("Generate fake products successfully");
+    }
+
+    @GetMapping("/by-ids")
+    public ResponseEntity<?> getProductByIds(@RequestParam("ids") String ids) {
+        try {
+            List<Long> productIds = Arrays.stream(ids.split(",")).map(Long::parseLong).toList();
+            List<Product> products = productService.findProductByIds(productIds);
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 }

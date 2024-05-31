@@ -86,5 +86,4 @@ public class JwtTokenUtils {
         String phoneNumber = extractPhoneNumber(token);
         return (phoneNumber.equals(userDetails.getUsername()) &&!isTokenExpired(token));
     }
-
 }

@@ -2,6 +2,7 @@ package com.project.shopapp.controller;
 
 import com.project.shopapp.dtos.UserDTO;
 import com.project.shopapp.dtos.UserLoginDTO;
+import com.project.shopapp.models.User;
 import com.project.shopapp.responses.LoginResponse;
 import com.project.shopapp.responses.RegisterResponse;
 import com.project.shopapp.services.UserService;
@@ -9,9 +10,11 @@ import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.untils.MessagesKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,8 +31,11 @@ public class UserController {
     private UserService userService;
     @Autowired
     private LocalizationUtils localizationUtils;
+    @Autowired
+    private ModelMapper modelMapper;
 
     @PostMapping("/register")
+    @Transactional
     public ResponseEntity<RegisterResponse> createUser(@Valid @RequestBody UserDTO userDTO, BindingResult result) {
         try {
             if (result.hasErrors()) {
@@ -46,6 +52,7 @@ public class UserController {
             userService.createUser(userDTO);
             return ResponseEntity.status(HttpStatus.OK).body(RegisterResponse.builder()
                     .message(localizationUtils.getLocalizedMessage(MessagesKeys.REGISTER_SUCCESSFULLY))
+                    .user(modelMapper.map(userDTO, User.class))
                     .build());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(RegisterResponse.builder()

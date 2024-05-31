@@ -12,20 +12,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
+
+@Service
 public interface ProductService{
     Product createProduct(ProductDTO productDTO) throws DataNotFoundException;
-
     Product getProductById(Long productId) throws DataNotFoundException;
-
-    Page<ProductResponse> getAllProducts(PageRequest pageRequest);
-
+    Page<ProductResponse> getAllProducts(String keyword,Long categoryId,PageRequest pageRequest);
     Product updateProduct(Long productId, ProductDTO productDTO);
-
     void deleteProduct(Long productId);
 
     boolean existsByProductName(String productName);
     ProductImage createProductImage(Long productId, ProductImageDTO productImageDTO) throws DataNotFoundException, InvalidParamException;
-
-
+    Optional<Product> getDetailProduct(Long productId);
+    List<Product> findProductByIds(List<Long> productIds);
 
 }
